@@ -3,6 +3,12 @@
 import * as __export__conversation from './conversation/index.js';
 // eslint-disable-next-line @typescript-eslint/naming-convention
 import * as __export__conversation__runtime from './conversation/runtime/index.js';
+// eslint-disable-next-line @typescript-eslint/naming-convention
+import * as __export__ai_model_resolver from './ai-model-resolver/index.js';
+import {
+  AmplifyAiModelResolverCustomResourceOutput,
+  AmplifyAiModelResolverCustomResourceProps,
+} from './ai-model-resolver/index.js';
 
 /*
  Api-extractor does not ([yet](https://github.com/microsoft/rushstack/issues/1596)) support multiple package entry points
@@ -10,4 +16,10 @@ import * as __export__conversation__runtime from './conversation/runtime/index.j
  This allows api-extractor to pick up the submodule exports in its analysis
  */
 
-export { __export__conversation, __export__conversation__runtime };
+export {
+  __export__conversation,
+  __export__conversation__runtime,
+  __export__ai_model_resolver,
+  AmplifyAiModelResolverCustomResourceOutput,
+  AmplifyAiModelResolverCustomResourceProps,
+};

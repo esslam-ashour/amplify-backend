@@ -100,6 +100,8 @@ export class BedrockConverseAdapter {
     const { modelId, systemPrompt, inferenceConfiguration } =
       this.event.modelConfiguration;
 
+    const resolvedModelId = this.getResolvedModelId(modelId);
+
     const messages: Array<Message> =
       await this.getEventMessagesAsBedrockMessages();
 
@@ -107,7 +109,7 @@ export class BedrockConverseAdapter {
     do {
       const toolConfig = this.createToolConfiguration();
       const converseCommandInput: ConverseCommandInput = {
-        modelId,
+        modelId: resolvedModelId,
         messages: [...messages],
         system: [{ text: systemPrompt }],
         inferenceConfig: inferenceConfiguration,
@@ -181,7 +183,7 @@ export class BedrockConverseAdapter {
     do {
       const toolConfig = this.createToolConfiguration();
       const converseCommandInput: ConverseStreamCommandInput = {
-        modelId,
+        modelId: this.getResolvedModelId(modelId),
         messages: [...messages],
         system: [{ text: systemPrompt }],
         inferenceConfig: inferenceConfiguration,
@@ -408,6 +410,26 @@ export class BedrockConverseAdapter {
       });
     }
     return messages;
+  };
+
+  /**
+   * Get resolved model ID from environment variable mapping created by conversation
+   * handler construct.
+   */
+  private getResolvedModelId = (originalModelId: string): string => {
+    const modelIdMapping = process.env.MODEL_ID_MAPPING;
+    if (modelIdMapping) {
+      try {
+        const mapping = JSON.parse(modelIdMapping);
+        return mapping[originalModelId] || originalModelId;
+      } catch (error) {
+        this.logger.warn(
+          'Failed to parse MODEL_ID_MAPPING, using original model ID',
+          error,
+        );
+      }
+    }
+    return originalModelId;
   };
 
   private createToolConfiguration = (): ToolConfiguration | undefined => {

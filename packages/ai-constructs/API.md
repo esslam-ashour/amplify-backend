@@ -14,6 +14,15 @@ import * as jsonSchemaToTypeScript from 'json-schema-to-ts';
 import { ResourceProvider } from '@aws-amplify/plugin-types';
 import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 
+declare namespace __export__ai_model_resolver {
+    export {
+        AiModelResolverConstruct,
+        AmplifyAiModelResolverCustomResourceOutput,
+        AmplifyAiModelResolverCustomResourceProps
+    }
+}
+export { __export__ai_model_resolver }
+
 declare namespace __export__conversation {
     export {
         ConversationHandlerFunction,
@@ -39,6 +48,25 @@ declare namespace __export__conversation__runtime {
 export { __export__conversation__runtime }
 
 // @public
+class AiModelResolverConstruct extends Construct {
+    constructor(scope: Construct);
+    resolveAiModel(input: AmplifyAiModelResolverCustomResourceProps): AmplifyAiModelResolverCustomResourceOutput;
+}
+
+// @public (undocumented)
+export type AmplifyAiModelResolverCustomResourceOutput = {
+    modelId: string;
+    modelArns: string[];
+};
+
+// @public (undocumented)
+export type AmplifyAiModelResolverCustomResourceProps = {
+    modelId: string;
+    region: string;
+    crossRegionInference: boolean;
+};
+
+// @public
 class ConversationHandlerFunction extends Construct implements ResourceProvider<FunctionResources> {
     constructor(scope: Construct, id: string, props: ConversationHandlerFunctionProps);
     // (undocumented)
@@ -52,6 +80,7 @@ type ConversationHandlerFunctionProps = {
     entry?: string;
     models: Array<{
         modelId: string;
+        crossRegionInference?: boolean;
         region?: string;
     }>;
     memoryMB?: number;

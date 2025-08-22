@@ -27,6 +27,7 @@ import {
   AIConversationOutput,
   aiConversationOutputKey,
 } from '@aws-amplify/backend-output-schemas';
+import { AiModelResolverConstruct } from '../ai-model-resolver';
 
 const resourcesRoot = path.normalize(path.join(__dirname, 'runtime'));
 const defaultHandlerFilePath = path.join(
@@ -38,6 +39,7 @@ export type ConversationHandlerFunctionProps = {
   entry?: string;
   models: Array<{
     modelId: string;
+    crossRegionInference?: boolean;
     region?: string;
   }>;
   /**
@@ -124,7 +126,7 @@ export class ConversationHandlerFunction
       }),
     };
 
-    let conversationHandler: IFunction;
+    let conversationHandler: Function;
     if (this.props.entry) {
       // When custom entry is defined. Use NodejsFunction to bundle the handler.
       conversationHandler = new NodejsFunction(
@@ -150,12 +152,30 @@ export class ConversationHandlerFunction
     }
 
     if (this.props.models && this.props.models.length > 0) {
-      const resources = this.props.models.map(
-        (model) =>
-          `arn:aws:bedrock:${
-            model.region ?? Stack.of(this).region
-          }::foundation-model/${model.modelId}`,
+      const modelArns: string[] = [];
+      const modelIdMapping: Record<string, string> = {};
+
+      const aiModelResolver = new AiModelResolverConstruct(this);
+
+      this.props.models.forEach((model) => {
+        const originalModelId = model.modelId;
+        const resolvedModel = aiModelResolver.resolveAiModel({
+          modelId: model.modelId,
+          crossRegionInference: model.crossRegionInference ?? false,
+          region: model.region ?? Stack.of(this).region,
+        });
+
+        // Store mapping from original to resolved model ID
+        modelIdMapping[originalModelId] = resolvedModel.modelId;
+        modelArns.push(...resolvedModel.modelArns);
+      });
+
+      // Pass model ID mapping to runtime via environment variable
+      conversationHandler.addEnvironment(
+        'MODEL_ID_MAPPING',
+        Stack.of(this).toJsonString(modelIdMapping),
       );
+
       conversationHandler.addToRolePolicy(
         new PolicyStatement({
           effect: Effect.ALLOW,
@@ -163,13 +183,13 @@ export class ConversationHandlerFunction
             'bedrock:InvokeModel',
             'bedrock:InvokeModelWithResponseStream',
           ],
-          resources,
+          resources: modelArns,
         }),
       );
     }
 
     this.resources = {
-      lambda: conversationHandler,
+      lambda: conversationHandler as IFunction,
       cfnResources: {
         cfnFunction: conversationHandler.node.findChild(
           'Resource',
